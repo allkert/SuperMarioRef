@@ -52,6 +52,7 @@ def train(opt):
     mp = _mp.get_context("spawn")
 
     env, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type)
+    print(type(env),type(num_states),type(num_actions))
     global_model = ActorCritic(num_states, num_actions)
     if opt.use_gpu:
         global_model.cuda()
