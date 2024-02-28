@@ -16,12 +16,25 @@ def local_train(index, opt, global_model, optimizer, save=False):
     torch.manual_seed(123 + index)
     if save:
         start_time = timeit.default_timer()
+
+    # SummaryWriter是一个用于记录训练过程的接口
+    """
+        The `SummaryWriter` class provides a high-level API to create an event file 
+        in a given directory and add summaries and events to it. This class updates 
+        the file contents asynchronously. This allows a training script to call methods
+        to add data to the file directly from the training loop, without slowing down
+        training.
+    """
     writer = SummaryWriter(opt.log_path)
+
+    # 与环境交互的actor
     env, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type)
     local_model = ActorCritic(num_states, num_actions)
+
     if opt.use_gpu:
         local_model.cuda()
     local_model.train()
+
     state = torch.from_numpy(env.reset())
     if opt.use_gpu:
         state = state.cuda()
@@ -51,11 +64,15 @@ def local_train(index, opt, global_model, optimizer, save=False):
         rewards = []
         entropies = []
 
-        for _ in range(opt.num_local_steps):
+        for _ in range(opt.num_local_steps):# num_local_steps, default=50
             curr_step += 1
             logits, value, h_0, c_0 = local_model(state, h_0, c_0)
+            # logits即为actor的输出，value即为critic的输出
+
+            # 通过softmax函数将logits转换为概率分布
             policy = F.softmax(logits, dim=1)
             log_policy = F.log_softmax(logits, dim=1)
+            # 计算策略的熵
             entropy = -(policy * log_policy).sum(1, keepdim=True)
 
             m = Categorical(policy)
